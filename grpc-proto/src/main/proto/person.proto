@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.omid.rpc";
+option java_outer_classname = "PersonProto";
+option objc_class_prefix = "HLW";
+
+package com.omid.rpc;
+
+import "main.proto";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/type.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/wrappers.proto";
+
+
+
+service PersonService {  
+  rpc create (Person) returns (Person) {};
+  rpc update (Person) returns (Person) {};
+  rpc list(Pagination) returns (PersonList) {};  
+  rpc count(Search) returns (google.protobuf.Int64Value) {};  
+  rpc delete (google.protobuf.Int64Value) returns (google.protobuf.Empty) {};
+  rpc findById (google.protobuf.Int64Value) returns (Person) {};
+}
+
+message PersonList {
+    repeated Person persons=1;        
+}
+
+
+message Person {
+  int64 id = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string phone = 4;
+  string nationalNo = 5;
+}
+
+message PersonFilter{
+  string nationalNo = 1;
+}
+
+
+
+
+
+
+
+
+
+
+

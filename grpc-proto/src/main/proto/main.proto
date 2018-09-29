@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+
+option java_package = "com.omid.rpc";
+
+
+
+package com.omid.rpc;
+
+import "google/protobuf/any.proto";
+
+message Pagination{
+	int32 page = 1;
+	int32 pageSize = 2;
+	Search search = 3;
+	string sort = 4;
+}
+
+message Search{
+	bytes filter = 1;
+}
+
+

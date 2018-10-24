@@ -19,15 +19,17 @@ import "google/protobuf/wrappers.proto";
 
 service PersonService {  
   rpc create (Person) returns (Person) {};
-  rpc update (Person) returns (Person) {};
+  rpc update (UpdateValue) returns (Person) {};
   rpc list(Pagination) returns (PersonList) {};  
   rpc count(Search) returns (google.protobuf.Int64Value) {};  
   rpc delete (google.protobuf.Int64Value) returns (google.protobuf.Empty) {};
   rpc findById (google.protobuf.Int64Value) returns (Person) {};
+  rpc onClientStream (google.protobuf.Empty) returns (stream google.protobuf.StringValue) {};
 }
 
 message PersonList {
-    repeated Person persons=1;        
+    repeated Person resultList=1;        
+    google.protobuf.Int64Value resultCount=2;
 }
 
 

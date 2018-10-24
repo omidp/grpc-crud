@@ -6,11 +6,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.util.Assert;
 
 import com.omid.grpc.annotations.GServerInterceptor;
 
@@ -19,6 +22,7 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
 import io.grpc.ServerInterceptors;
+import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 
 /**
  * @author omidp
@@ -27,32 +31,35 @@ import io.grpc.ServerInterceptors;
 public class RpcServiceInitializer implements ApplicationContextAware, InitializingBean
 {
 
-    private static final int PORT = 50051;
-
     private ApplicationContext applicationContext;
 
-    private Server server;
+    private ServerBuilder<?> serverBuilder;
+
+    public RpcServiceInitializer()
+    {
+    }
 
     @Override
     public void afterPropertiesSet() throws Exception
     {
-        if (server == null)
+        if (serverBuilder == null)
         {
+            serverBuilder = (ServerBuilder<?>) applicationContext.getBean("nettyServer");
             Map<String, io.grpc.BindableService> beansMap = BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext,
                     io.grpc.BindableService.class);
-            ServerBuilder<?> serverBuilder = ServerBuilder.forPort(PORT);
+
             for (Map.Entry<String, io.grpc.BindableService> entry : beansMap.entrySet())
-            {                
+            {
                 BindableService bs = entry.getValue();
                 List<ServerInterceptor> interceptorAnnotations = processInterceptorAnnotations(bs.getClass());
-                if(interceptorAnnotations.isEmpty())
+                if (interceptorAnnotations.isEmpty())
                     serverBuilder.addService(bs);
                 else
                     serverBuilder.addService(ServerInterceptors.intercept(bs, interceptorAnnotations));
             }
 
-            server = serverBuilder.build();
         }
+        Assert.notNull(serverBuilder, "netty server can not be null");
 
     }
 
@@ -60,9 +67,9 @@ public class RpcServiceInitializer implements ApplicationContextAware, Initializ
     {
         Set<GServerInterceptor> repeatableAnnotations = AnnotationUtils.getDeclaredRepeatableAnnotations(bsClz, GServerInterceptor.class);
         List<ServerInterceptor> interceptors = new ArrayList<>();
-        if(repeatableAnnotations != null)
-        {                    
-            repeatableAnnotations.forEach(item->{
+        if (repeatableAnnotations != null)
+        {
+            repeatableAnnotations.forEach(item -> {
                 Class<? extends ServerInterceptor> value = item.value();
                 try
                 {
@@ -83,12 +90,9 @@ public class RpcServiceInitializer implements ApplicationContextAware, Initializ
         this.applicationContext = applicationContext;
     }
 
-    public Server getServer()
+    public ServerBuilder<?> getServerBuilder()
     {
-        return server;
+        return serverBuilder;
     }
-    
-    
-    
 
 }

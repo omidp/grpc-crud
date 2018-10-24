@@ -3,10 +3,12 @@ package com.omid.grpc.client;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import com.google.protobuf.Any;
 import com.google.protobuf.Int64Value;
+import com.omid.rpc.Main;
 import com.omid.rpc.Main.Pagination;
 import com.omid.rpc.Main.Pagination.Builder;
-import com.omid.rpc.Main.Search;
+import com.omid.rpc.Main.UpdateValue;
 import com.omid.rpc.Person;
 import com.omid.rpc.PersonFilter;
 import com.omid.rpc.PersonList;
@@ -20,7 +22,7 @@ import io.grpc.ManagedChannelBuilder;
  * @author omidp
  *
  */
-public class GRPCClient implements PersonStub
+public class GRPCClient 
 {
     private static final Logger logger = Logger.getLogger(GRPCClient.class.getName());
 
@@ -29,7 +31,7 @@ public class GRPCClient implements PersonStub
 
     public GRPCClient()
     {
-        this.channel = ManagedChannelBuilder.forAddress("127.0.0.1", 50051)
+        this.channel = ManagedChannelBuilder.forAddress("127.0.0.1", 50052)
                 // Channels are secure by default (via SSL/TLS). For the example
                 // we disable TLS to avoid
                 // needing certificates.
@@ -48,22 +50,28 @@ public class GRPCClient implements PersonStub
         personStub.create(person);
     }
 
-    public PersonList personList(int page, int pageSize, PersonFilter filter)
+    public PersonList personList(int page, int pageSize, PersonFilter filter, String jsonFilter)
     {
-        Builder paginationB = Pagination.newBuilder().setPage(page).setPageSize(pageSize).setSearch(Search.newBuilder().setFilter(filter.toByteString()));        
+        Main.Search.Builder pw = Main.Search.newBuilder();
+        pw.setFilter(Any.pack(filter));
+        pw.setJsonFilter(jsonFilter);
+        Builder paginationB = Pagination.newBuilder().setPage(page).setPageSize(pageSize).setSearch(pw.build());        
         PersonList personList = personStub.list(paginationB.build());
         return personList;
     }
 
-    public Number personCount(PersonFilter filter)
+    public Number personCount(PersonFilter filter, String jsonFilter)
     {        
-        return personStub.count(Search.newBuilder().setFilter(filter.toByteString()).build()).getValue();
+        Main.Search.Builder pw = Main.Search.newBuilder();
+        pw.setFilter(Any.pack(filter));
+        pw.setJsonFilter(jsonFilter);
+        return personStub.count(pw.build()).getValue();
     }
 
-    public void updatePerson(Long id, String firstName, String lastName, String nationalNo)
-    {
-        Person person = Person.newBuilder().setId(id).setFirstName(firstName).setLastName(lastName).setNationalNo(nationalNo).build();
-        personStub.update(person);
+    public void updatePerson(Long id, String personAsJson)
+    {        
+        UpdateValue uv = UpdateValue.newBuilder().setId(id).setJsonValue(personAsJson).build();
+        personStub.update(uv);
     }
 
     public void delete(Long id)
@@ -76,5 +84,9 @@ public class GRPCClient implements PersonStub
         Person found = personStub.findById(Int64Value.of(id));
         return found;
     }
+
+  
+
+   
 
 }

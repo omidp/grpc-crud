@@ -1,7 +1,9 @@
 package com.omid.grpc.service;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -16,17 +18,22 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
-import com.google.protobuf.ByteString;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Empty;
 import com.google.protobuf.Int64Value;
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.StringValue;
+import com.jedlab.framework.db.QueryMapper;
+import com.jedlab.framework.spring.rest.QueryWhereParser;
+import com.jedlab.framework.spring.security.AuthenticationUtil;
 import com.jedlab.framework.spring.service.JPARestriction;
 import com.jedlab.framework.util.StringUtil;
 import com.omid.grpc.annotations.GServerInterceptor;
+import com.omid.grpc.dao.PersonDao;
 import com.omid.grpc.domain.PersonEntity;
 import com.omid.grpc.server.AuthenticationServerInterceptor;
-import com.omid.rpc.Main.Pagination;
-import com.omid.rpc.Main.Search;
+import com.omid.grpc.server.wrapper.PaginationWrapper;
+import com.omid.grpc.server.wrapper.SearchWrapper;
+import com.omid.rpc.Main;
 import com.omid.rpc.Person;
 import com.omid.rpc.PersonFilter;
 import com.omid.rpc.PersonList;
@@ -43,6 +50,8 @@ import io.grpc.stub.StreamObserver;
 public class PersonServiceImpl extends PersonServiceImplBase
 {
 
+    public static final ObjectMapper MAPPER = new ObjectMapper();
+
     private static final Logger logger = Logger.getLogger(PersonServiceImpl.class.getName());
 
     PersonService personService;
@@ -56,62 +65,62 @@ public class PersonServiceImpl extends PersonServiceImplBase
     @Override
     public void create(Person request, StreamObserver<Person> responseObserver)
     {
-        personService.insert(new PersonEntity(request));
-        responseObserver.onNext(request);
+        PersonEntity personEntity = new PersonEntity(request);
+        personService.insert(personEntity);
+        Person build = request.toBuilder().setId(personEntity.getId()).build();
+        responseObserver.onNext(build);
         responseObserver.onCompleted();
     }
 
     @Override
-    public void list(Pagination request, StreamObserver<PersonList> responseObserver)
-    {
-
-        PersonFilter defaultInstance = com.google.protobuf.Internal.getDefaultInstance(PersonFilter.class);
-        ByteString searchFilter = request.getSearch().getFilter();
-        PersonFilter filter = PersonFilter.newBuilder().build();
-        try
-        {
-            filter = (PersonFilter) defaultInstance.getParserForType().parseFrom(searchFilter);
-        }
-        catch (InvalidProtocolBufferException e)
-        {
-            logger.info("InvalidProtocolBufferException : " + e.getMessage());
-        }
-        Page<PersonEntity> page = personService.load(PageRequest.of(request.getPage(), request.getPageSize()), PersonEntity.class,
-                new PersonRestriction(filter));
-        List<Person> persons = page.getContent().stream().map(p -> p.createPersonProto()).collect(Collectors.toList());
-        PersonList personList = PersonList.newBuilder().addAllPersons(persons).build();
+    public void list(Main.Pagination request, StreamObserver<PersonList> responseObserver)
+    {        
+        PaginationWrapper pw = new PaginationWrapper(request);
+        PersonFilter filter = pw.getFilter(PersonFilter.class, PersonFilter.newBuilder().build());
+        Page<PersonEntity> page = personService.load(PageRequest.of(request.getPage(), pw.getPageSize()), PersonEntity.class,
+                new PersonRestriction(filter, pw.getJsonFilter()), pw.getSort());
+        List<Person> persons = page.getContent().stream().map(PersonEntity::createProto).collect(Collectors.toList());
+        PersonList personList = PersonList.newBuilder().addAllResultList(persons)
+                .setResultCount(Int64Value.newBuilder().setValue(page.getTotalElements()).build()).build();
         responseObserver.onNext(personList);
         responseObserver.onCompleted();
     }
 
     @Override
-    public void count(Search request, StreamObserver<Int64Value> responseObserver)
+    public void count(Main.Search request, StreamObserver<Int64Value> responseObserver)
     {
-        // below line cause illegalargument exception why ?
-        // PersonFilter filter = (PersonFilter)
-        // SerializationUtils.deserialize(request.getFilter().toByteArray());
-        PersonFilter defaultInstance = com.google.protobuf.Internal.getDefaultInstance(PersonFilter.class);
-        ByteString searchFilter = request.getFilter();
-        PersonFilter filter = PersonFilter.newBuilder().build();
-        try
-        {
-            filter = (PersonFilter) defaultInstance.getParserForType().parseFrom(searchFilter);
-        }
-        catch (InvalidProtocolBufferException e)
-        {
-            logger.info("InvalidProtocolBufferException : " + e.getMessage());
-        }
-        Long count = personService.count(PersonEntity.class, new PersonRestriction(filter));
+        SearchWrapper sw = new SearchWrapper(request);
+        Long count = personService.count(PersonEntity.class,
+                new PersonRestriction(sw.getFilter(PersonFilter.class, PersonFilter.newBuilder().build()), sw.getJsonFilter()));
         responseObserver.onNext(Int64Value.newBuilder().setValue(count).build());
         responseObserver.onCompleted();
     }
 
     @Override
-    public void update(Person request, StreamObserver<Person> responseObserver)
+    public void update(Main.UpdateValue request, StreamObserver<Person> responseObserver)
     {
-        personService.update(new PersonEntity(request));
-        responseObserver.onNext(request);
-        responseObserver.onCompleted();
+
+        Optional<PersonEntity> op = ((PersonDao) personService.getDao()).findById(request.getId());
+        if (op.isPresent())
+        {
+            try
+            {
+                PersonEntity pe = MAPPER.readerForUpdating(op.get()).readValue(request.getJsonValue());
+                personService.update(pe);
+                responseObserver.onNext(pe.createProto());
+                responseObserver.onCompleted();
+            }
+            catch (IOException e)
+            {
+                responseObserver.onError(e);
+            }
+
+        }
+        else
+        {
+            responseObserver.onError(new ResponseException());
+        }
+
     }
 
     @Override
@@ -126,18 +135,36 @@ public class PersonServiceImpl extends PersonServiceImplBase
     public void findById(Int64Value request, StreamObserver<Person> responseObserver)
     {
         PersonEntity personEntity = personService.findById(PersonEntity.class, request.getValue());
-        responseObserver.onNext(personEntity.createPersonProto());
+        responseObserver.onNext(personEntity.createProto());
         responseObserver.onCompleted();
+    }
+
+    @Override
+    public void onClientStream(Empty request, StreamObserver<StringValue> responseObserver)
+    {
+        responseObserver.onNext(StringValue.newBuilder().setValue("stream1").build());
+        try
+        {
+            Thread.sleep(2000);
+        }
+        catch (InterruptedException e)
+        {
+            //DO NOTHING
+        }
+        responseObserver.onNext(StringValue.newBuilder().setValue("stream2").build());
+        // never close this for websocket
     }
 
     public static class PersonRestriction implements JPARestriction
     {
 
         PersonFilter filter;
+        List<QueryWhereParser.FilterProperty> jsonFilter;
 
-        public PersonRestriction(PersonFilter filter)
+        public PersonRestriction(PersonFilter filter, List<QueryWhereParser.FilterProperty> jsonFilter)
         {
             this.filter = filter;
+            this.jsonFilter = jsonFilter;
         }
 
         @Override
@@ -163,6 +190,7 @@ public class PersonServiceImpl extends PersonServiceImplBase
             {
                 predicateList.add(builder.equal(root.get("nationalNo"), filter.getNationalNo()));
             }
+            predicateList.addAll(QueryMapper.filterMap(jsonFilter, builder, criteria, root, PersonEntity.class));
             return builder.and(predicateList.toArray(new Predicate[predicateList.size()]));
         }
 

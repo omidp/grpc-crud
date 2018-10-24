@@ -38,7 +38,7 @@
 	<!-- SPRING - JPA -->
 	<bean class="com.omid.grpc.server.SpringUtil" id="springUtil"></bean>	
 	
-	<bean class="com.omid.grpc.server.RpcServiceInitializer" id="rpcServiceInitializer"></bean>
+	<bean class="com.omid.grpc.server.RpcServiceInitializer" id="rpcServiceInitializer"></bean>	
 	
 	<import resource="classpath:datasource.xml" />
 

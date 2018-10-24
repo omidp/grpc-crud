@@ -5,7 +5,9 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import com.jedlab.framework.spring.dao.PO;
+import com.jedlab.framework.util.StringUtil;
 import com.omid.rpc.Person;
+import com.omid.rpc.Person.Builder;
 
 /**
  * @author omidp
@@ -28,7 +30,7 @@ public class PersonEntity extends PO
 
     public PersonEntity(Person person)
     {
-        if(person.getId() > 0)
+        if (person.getId() > 0)
             setId(person.getId());
         this.firstName = person.getFirstName();
         this.lastName = person.getLastName();
@@ -66,10 +68,18 @@ public class PersonEntity extends PO
     }
 
     @Transient
-    public Person createPersonProto()
+    public Person createProto()
     {
-        Person p = Person.newBuilder().setFirstName(firstName).setLastName(lastName).setNationalNo(nationalNo).setId(getId()).build();
-        return p;
+        Builder builder = Person.newBuilder();
+        if (StringUtil.isNotEmpty(firstName))
+            builder.setFirstName(firstName);
+        if (StringUtil.isNotEmpty(lastName))
+            builder.setLastName(lastName);
+        if (StringUtil.isNotEmpty(nationalNo))
+            builder.setNationalNo(nationalNo);
+        if (getId() != null)
+            builder.setId(getId());
+        return builder.build();
     }
 
 }

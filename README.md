@@ -1,4 +1,4 @@
-== Server Module
+# Server Module
 
 * interceptor enhancement : register an interceptor with annotation.
 
@@ -11,18 +11,18 @@ public class PersonServiceImpl extends PersonServiceImplBase {}
 
 * Spring/JPA integration
 
-== Client Module
+# Client Module
 
 can be anything including primefaces, spring boot etc
 
 * json serialization
 
-== proto
+# proto
 
 contains all proto file generates java code
 
 
-== How to build
+# How to build
 
 1. build proto project (cd grpc-proto)
 

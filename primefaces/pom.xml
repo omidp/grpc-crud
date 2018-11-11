@@ -7,6 +7,18 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>primefaces Maven Webapp</name>
 	<url>http://maven.apache.org</url>
+	
+	
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<java.version>1.8</java.version>
+		
+		<jsf.version>2.2.11</jsf.version>
+		<primefaces.version>6.2</primefaces.version>
+		
+	</properties>
+	
 	<dependencies>
 		<!-- JSF -->
 		<dependency>
@@ -73,5 +85,19 @@
 	</dependencies>
 	<build>
 		<finalName>primefaces</finalName>
+		<plugins>
+		<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.0</version>
+				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<compilerArgument>-deprecation</compilerArgument>
+					<compilerArgument>-Xlint:unchecked</compilerArgument>
+					<compilerArgument>-Xlint:deprecation</compilerArgument>
+				</configuration>
+			</plugin>
+		</plugins>
 	</build>
 </project>

@@ -1,5 +1,4 @@
 package com.omid.grpc.server.wrapper;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -131,4 +130,5 @@ public class SearchWrapper extends AbstractMessage
 
 
 }
+
 

@@ -31,7 +31,7 @@ public class GRPCClient
 
     public GRPCClient()
     {
-        this.channel = ManagedChannelBuilder.forAddress("127.0.0.1", 50052)
+        this.channel = ManagedChannelBuilder.forAddress("127.0.0.1", 50051)
                 // Channels are secure by default (via SSL/TLS). For the example
                 // we disable TLS to avoid
                 // needing certificates.

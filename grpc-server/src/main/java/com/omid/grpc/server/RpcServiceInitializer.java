@@ -33,7 +33,7 @@ public class RpcServiceInitializer implements ApplicationContextAware, Initializ
 
     private ApplicationContext applicationContext;
 
-    private ServerBuilder<?> serverBuilder;
+    private List<BindaleServiceHolder> bindaleServiceList;
 
     public RpcServiceInitializer()
     {
@@ -42,9 +42,9 @@ public class RpcServiceInitializer implements ApplicationContextAware, Initializ
     @Override
     public void afterPropertiesSet() throws Exception
     {
-        if (serverBuilder == null)
-        {
-            serverBuilder = (ServerBuilder<?>) applicationContext.getBean("nettyServer");
+        if (bindaleServiceList == null)
+            bindaleServiceList = new ArrayList<>();
+           
             Map<String, io.grpc.BindableService> beansMap = BeanFactoryUtils.beansOfTypeIncludingAncestors(applicationContext,
                     io.grpc.BindableService.class);
 
@@ -53,13 +53,12 @@ public class RpcServiceInitializer implements ApplicationContextAware, Initializ
                 BindableService bs = entry.getValue();
                 List<ServerInterceptor> interceptorAnnotations = processInterceptorAnnotations(bs.getClass());
                 if (interceptorAnnotations.isEmpty())
-                    serverBuilder.addService(bs);
+                    bindaleServiceList.add(new BindaleServiceHolder(bs));
                 else
-                    serverBuilder.addService(ServerInterceptors.intercept(bs, interceptorAnnotations));
+                    bindaleServiceList.add(new BindaleServiceHolder(interceptorAnnotations, bs));
+                    
             }
 
-        }
-        Assert.notNull(serverBuilder, "netty server can not be null");
 
     }
 
@@ -89,10 +88,46 @@ public class RpcServiceInitializer implements ApplicationContextAware, Initializ
     {
         this.applicationContext = applicationContext;
     }
+    
+    
 
-    public ServerBuilder<?> getServerBuilder()
+    public List<BindaleServiceHolder> getBindaleServiceList()
     {
-        return serverBuilder;
+        return bindaleServiceList;
+    }
+
+
+
+    public static class BindaleServiceHolder
+    {
+        List<ServerInterceptor> interceptors;
+        BindableService bindableService;
+
+        public BindaleServiceHolder(List<ServerInterceptor> interceptors, BindableService bindableService)
+        {
+            this.interceptors = interceptors;
+            this.bindableService = bindableService;
+        }
+        
+        
+
+        public BindaleServiceHolder(BindableService bindableService)
+        {
+            this.bindableService = bindableService;
+        }
+
+
+
+        public List<ServerInterceptor> getInterceptors()
+        {
+            return interceptors;
+        }
+
+        public BindableService getBindableService()
+        {
+            return bindableService;
+        }
+
     }
 
 }

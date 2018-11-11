@@ -1,5 +1,4 @@
-package com.omid.grpc.service;
-
+package com.omid.grpc.boot.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,12 +23,11 @@ import com.google.protobuf.Int64Value;
 import com.google.protobuf.StringValue;
 import com.jedlab.framework.db.QueryMapper;
 import com.jedlab.framework.spring.rest.QueryWhereParser;
-import com.jedlab.framework.spring.security.AuthenticationUtil;
 import com.jedlab.framework.spring.service.JPARestriction;
 import com.jedlab.framework.util.StringUtil;
 import com.omid.grpc.annotations.GServerInterceptor;
-import com.omid.grpc.dao.PersonDao;
-import com.omid.grpc.domain.PersonEntity;
+import com.omid.grpc.boot.dao.PersonDao;
+import com.omid.grpc.boot.domain.PersonEntity;
 import com.omid.grpc.server.AuthenticationServerInterceptor;
 import com.omid.grpc.server.wrapper.PaginationWrapper;
 import com.omid.grpc.server.wrapper.SearchWrapper;

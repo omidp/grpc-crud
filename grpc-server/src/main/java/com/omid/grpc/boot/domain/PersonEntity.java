@@ -1,4 +1,4 @@
-package com.omid.grpc.domain;
+package com.omid.grpc.boot.domain;
 
 import javax.persistence.Entity;
 import javax.persistence.Table;

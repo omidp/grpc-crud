@@ -19,10 +19,10 @@ public class PersonClientStubTest
     }
 
     @Test
-//    @Ignore
+//    @Ignore    
     public void testCreate()
     {
-        client.createPerson("omid", "p", "123");
+        client.createPerson("omidfdsfsd", "psdfsd", "1233242");
     }
 
     @Test
